@@ -1,12 +1,13 @@
 // Import dependencies
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import * as tf from "@tensorflow/tfjs";
 // 1. TODO - Import required model here
 // e.g. import * as tfmodel from "@tensorflow-models/tfmodel";
 import Webcam from "react-webcam";
 import "./App.css";
 // 2. TODO - Import drawing utility here
-import { drawRect } from "./utilities";
+// e.g. import { drawRect } from "./utilities";
+import {drawRect} from "./utilities";
 
 function App() {
   const webcamRef = useRef(null);
@@ -16,16 +17,17 @@ function App() {
   const runCoco = async () => {
     // 3. TODO - Load network 
     // e.g. const net = await cocossd.load();
-    const net = await tf.loadGraphModel('https://modeldeductivemachinelearning.s3.us-south.cloud-object-storage.appdomain.cloud/model.json');
+    //https://modeldeductivemachinelearning.s3.us-south.cloud-object-storage.appdomain.cloud/model.json
 
+    const net = await tf.loadGraphModel('https://modeldeductivemachinelearning.s3.us-south.cloud-object-storage.appdomain.cloud/model.json')
     //  Loop and detect hands
-    setInterval(() => detect(net), 16.7);
+    setInterval(() => {
+      detect(net);
+    }, 2000);
   };
 
   const detect = async (net) => {
-    console.log("🚀 ~ file: App.js ~ line 26 ~ detect ~ net", net)
     // Check data is available
-
     if (
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
@@ -45,45 +47,41 @@ function App() {
       canvasRef.current.height = videoHeight;
 
       // 4. TODO - Make Detections
-      const img = tf.browser.fromPixels(video);
-      const resized = tf.image.resizeBilinear(img, [640, 480]);
-      const casted = resized.cast('int32');
-      const expanded = casted.expandDims(0);
-      const obj = await net.executeAsync(expanded);
-      console.log("🚀 ~ file: App.js ~ line 51 ~ detect ~ obj", obj);
+      const img = tf.browser.fromPixels(video)
+      const resized = tf.image.resizeBilinear(img, [640,480])
+      const casted = resized.cast('int32')
+      const expanded = casted.expandDims(0)
+      const obj = await net.executeAsync(expanded)
+      console.log(await obj[5].array())
 
-      const boxes = await obj[1].array()
-      const classes = await obj[2].array()
-      const scores = await obj[4].array()
+      const boxes = await obj[7].array()
+      const classes = await obj[0].array()
+      const scores = await obj[5].array()
+
       // Draw mesh
       const ctx = canvasRef.current.getContext("2d");
 
       // 5. TODO - Update drawing utility
-      // drawSomething(obj, ctx)
-      requestAnimationFrame(() => {
-        drawRect(boxes[0], classes[0], scores[0], 0.8, videoWidth, videoHeight, ctx);
-      });
+      // drawSomething(obj, ctx)  
 
-      tf.dispose(img);
-      tf.dispose(resized);
-      tf.dispose(casted);
-      tf.dispose(expanded);
-      tf.dispose(obj);
+      requestAnimationFrame(() => {drawRect(boxes[0], classes[0], scores[0], 0.6, videoWidth, videoHeight, ctx)});
+
+      tf.dispose(img)
+      tf.dispose(resized)
+      tf.dispose(casted)
+      tf.dispose(expanded)
+      tf.dispose(obj)
     }
   };
 
-  useEffect(() => {
-    debugger;
-    console.log('entro')
-    runCoco();
-  }, []);
+  useEffect(()=>{runCoco()},[]);
 
   return (
     <div className="App">
       <header className="App-header">
         <Webcam
           ref={webcamRef}
-          muted={true}
+          muted={true} 
           style={{
             position: "absolute",
             marginLeft: "auto",
